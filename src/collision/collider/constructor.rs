@@ -372,6 +372,13 @@ pub enum ColliderConstructor {
         vertices: Vec<RVector>,
         indices: Option<Vec<[u32; 2]>>,
     },
+    /// Constructs a collider with [`Collider::polyline_with_config`].
+    #[cfg(feature = "2d")]
+    PolylineWithConfig {
+        vertices: Vec<RVector>,
+        indices: Option<Vec<[u32; 2]>>,
+        flags: PolylineFlags,
+    },
     /// Constructs a collider with [`Collider::trimesh`].
     Trimesh {
         vertices: Vec<RVector>,

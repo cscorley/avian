@@ -17,6 +17,8 @@ use bevy::mesh::{Indices, VertexAttributeValues};
 use bevy::{log, prelude::*};
 use contact_query::UnsupportedShape;
 use itertools::Either;
+#[cfg(feature = "2d")]
+use parry::shape::Polyline;
 use parry::{
     bounding_volume::BoundingVolume,
     shape::{RoundShape, SharedShape, TypedShape, Voxels},
@@ -228,6 +230,34 @@ bitflags::bitflags! {
 
 impl From<TrimeshFlags> for parry::shape::TriMeshFlags {
     fn from(value: TrimeshFlags) -> Self {
+        Self::from_bits(value.bits().into()).unwrap()
+    }
+}
+
+/// Flags used for the preprocessing of a polyline collider.
+#[cfg(feature = "2d")]
+#[repr(transparent)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Hash, Clone, Copy, PartialEq, Eq, Debug, Reflect)]
+#[reflect(opaque, Hash, PartialEq, Debug)]
+pub struct PolylineFlags(u8);
+
+#[cfg(feature = "2d")]
+bitflags::bitflags! {
+    impl PolylineFlags: u8 {
+        /// If set, the polyline will be assumed to be oriented (with outward normals).
+        ///
+        /// The pseudo-normals of its vertices and edges will be computed.
+        ///
+        /// This one flag covers what triangle meshes split across [`TrimeshFlags::ORIENTED`] and
+        /// [`TrimeshFlags::FIX_INTERNAL_EDGES`].
+        const ORIENTED = 0b0000_0001;
+    }
+}
+
+#[cfg(feature = "2d")]
+impl From<PolylineFlags> for parry::shape::PolylineFlags {
+    fn from(value: PolylineFlags) -> Self {
         Self::from_bits(value.bits().into()).unwrap()
     }
 }
@@ -902,6 +932,17 @@ impl Collider {
         SharedShape::polyline(vertices, indices).into()
     }
 
+    /// Creates a collider with a polyline shape defined by its vertices and optionally an index buffer,
+    /// and flags controlling the preprocessing.
+    #[cfg(feature = "2d")]
+    pub fn polyline_with_config(
+        vertices: Vec<RVector>,
+        indices: Option<Vec<[u32; 2]>>,
+        flags: PolylineFlags,
+    ) -> Self {
+        SharedShape::new(Polyline::with_flags(vertices, indices, flags.into())).into()
+    }
+
     /// Creates a collider with a triangle mesh shape defined by its vertex and index buffers.
     ///
     /// Note that the resulting collider will be hollow and have no interior.
@@ -1427,6 +1468,12 @@ impl Collider {
             ColliderConstructor::Polyline { vertices, indices } => {
                 Some(Self::polyline(vertices, indices))
             }
+            #[cfg(feature = "2d")]
+            ColliderConstructor::PolylineWithConfig {
+                vertices,
+                indices,
+                flags,
+            } => Some(Self::polyline_with_config(vertices, indices, flags)),
             ColliderConstructor::Trimesh { vertices, indices } => {
                 Some(Self::trimesh(vertices, indices))
             }

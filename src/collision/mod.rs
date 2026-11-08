@@ -81,6 +81,12 @@ pub mod prelude {
     pub use super::broad_phase::{BroadPhaseCorePlugin, BroadPhaseSystems, BvhBroadPhasePlugin};
     #[cfg(all(feature = "collider-from-mesh", feature = "default-collider"))]
     pub use super::collider::ColliderCachePlugin;
+    #[cfg(all(
+        feature = "2d",
+        feature = "default-collider",
+        any(feature = "parry-f32", feature = "parry-f64")
+    ))]
+    pub use super::collider::PolylineFlags;
     pub use super::collider::{
         AnyCollider, ColliderAabb, ColliderAabbMargin, ColliderBackendPlugin, ColliderContext,
         ColliderDisabled, ColliderMarker, ColliderPairContext, CollidingEntities, CollisionLayers,
